@@ -1,0 +1,40 @@
+{
+  "name": "deploy-notification-vs-ext",
+  "version": "1.1.0",
+  "description": "Send notification with new version and rollback version to Slack!",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "publish": "tfx extension create",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "homepage": "https://github.com/ThiagoBarradas/deploy-notification-vss-ext#readme",
+  "bugs": {
+    "url": "https://github.com/ThiagoBarradas/deploy-notification-vss-ext/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ThiagoBarradas/deploy-notification-vss-ext.git"
+  },
+  "keywords": [
+    "azure",
+    "devops",
+    "notification",
+    "deploy",
+    "rollback",
+    "notification",
+    "slack",
+    "release"
+  ],
+  "author": "Thiago Barradas",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "azure-pipelines-task-lib": "^2.8.0",
+    "azure-storage": "^2.10.3"
+  },
+  "devDependencies": {
+    "@types/node": "^12.0.8",
+    "@types/q": "^1.5.2"
+  }
+}
