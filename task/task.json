@@ -11,7 +11,7 @@
     "category": "Utility",
     "version": {
       "Major": 1,
-      "Minor": 1,
+      "Minor": 2,
       "Patch": 0
     },
     "inputs": [
@@ -44,6 +44,13 @@
         "defaultValue": "$(AzureStorageContainer)",
         "required": true,
         "helpMarkDown": "Used to keep release state"
+      },
+      {
+        "name": "is_hotfix",
+        "type": "string",
+        "label": "IsHotfix?",
+        "defaultValue": "$(IsHotfix)",
+        "required": false
       }
     ],
     "execution": {

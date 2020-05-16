@@ -30,6 +30,31 @@ function sendRequest(method, url, data, callback) {
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+function padLeft(text, padChar, size) {
+    return (String(padChar).repeat(size) + text).substr((size * -1), size);
+}
+function isRollback(oldVersion, newVersion) {
+    if (/^\d+.\d+.\d+$/.test(oldVersion) && /^\d+.\d+.\d+$/.test(newVersion)) {
+        var oldParts = oldVersion.split(".");
+        var newParts = newVersion.split(".");
+        var oldMajor = Number(oldParts[0]);
+        var oldMinor = Number(oldParts[1]);
+        var oldPatch = Number(oldParts[2]);
+        var newMajor = Number(newParts[0]);
+        var newMinor = Number(newParts[1]);
+        var newPatch = Number(newParts[2]);
+        if (newMajor > oldMajor)
+            return false;
+        if (oldMajor > newMajor)
+            return true;
+        if (newMinor > oldMinor)
+            return false;
+        if (oldMinor > newMinor)
+            return true;
+        return oldPatch > newPatch;
+    }
+    return false;
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -38,6 +63,7 @@ function run() {
             var newVersion = tl.getInput('new_version', true);
             var azureConnString = tl.getInput('azure_conn', true);
             var azureContainer = tl.getInput('azure_container', true);
+            var isHotfix = tl.getInput('is_hotfix', false);
             var appName = tl.getVariable("SYSTEM_DEFINITIONNAME");
             var environment = tl.getVariable("RELEASE_ENVIRONMENTNAME");
             var newUrl = tl.getVariable("RELEASE_RELEASEWEBURL");
@@ -72,8 +98,20 @@ function run() {
                                         tl.setResult(tl.TaskResult.Failed, "------------- Error in Azure Storage! (GetBlob)\n\nError: " + error.message);
                                         return;
                                     }
+                                    isHotfix = (isHotfix != null || isHotfix != undefined) ? isHotfix.toLowerCase().trim() : "false";
+                                    var isRollbackBool = isRollback(oldVersion, newVersion);
+                                    var prefix = ":rocket: Deploy";
+                                    var suffix = ":rocket:";
+                                    if (isHotfix == "true") {
+                                        prefix = ":ambulance: *[HOTFIX]* Deploy";
+                                        suffix = ":ambulance:";
+                                    }
+                                    if (isRollbackBool == true) {
+                                        prefix = ":boom: *[ROLLBACK]* Deploy";
+                                        suffix = ":boom:";
+                                    }
                                     // prepare message
-                                    var message = `:rocket: Deploy Started for ${appName} in environment ${environment} :rocket:`;
+                                    var message = `${prefix} Started for ${appName} in environment ${environment} ${suffix}`;
                                     var slackPayload = {
                                         text: message,
                                         icon_url: slackIcon,
