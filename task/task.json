@@ -11,10 +11,24 @@
     "category": "Utility",
     "version": {
       "Major": 1,
-      "Minor": 2,
+      "Minor": 4,
       "Patch": 0
     },
     "inputs": [
+      {
+        "name": "app_name",
+        "type": "string",
+        "label": "App Name",
+        "defaultValue": "$(System.DefinitionName)",
+        "required": true
+      },
+      {
+        "name": "environment",
+        "type": "string",
+        "label": "Environment Name",
+        "defaultValue": "$(Release.EnvironmentName)",
+        "required": true
+      },
       {
         "name": "slack_url",
         "type": "string",
@@ -27,6 +41,13 @@
         "type": "string",
         "label": "New Version",
         "defaultValue": "$(Build.BuildNumber)",
+        "required": true
+      },
+      {
+        "name": "new_url",
+        "type": "string",
+        "label": "New URL",
+        "defaultValue": "$(Release.ReleaseWebUrl)",
         "required": true
       },
       {

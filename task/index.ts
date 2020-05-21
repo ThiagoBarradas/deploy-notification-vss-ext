@@ -62,14 +62,15 @@ async function run() {
         var azureConnString: string = tl.getInput('azure_conn', true);
         var azureContainer: string = tl.getInput('azure_container', true);
         var isHotfix: string = tl.getInput('is_hotfix', false);
-
-        var appName = tl.getVariable("SYSTEM_DEFINITIONNAME");
-        var environment = tl.getVariable("RELEASE_ENVIRONMENTNAME");
-        var newUrl = tl.getVariable("RELEASE_RELEASEWEBURL");
+        var appName: string = tl.getInput('app_name', true);
+        var environment: string = tl.getInput('environment', true);
+        var newUrl: string = tl.getInput('new_url', true);
 
         var appNameNormalized = `${normalizeText(appName)}.${normalizeText(environment)}`;
-        console.log(`appNameNormalized: ${environment}`);
+        console.log(`environment: ${environment}`);
+        console.log(`appName: ${appName}`);
         console.log(`appNameNormalized: ${appNameNormalized}`);
+        console.log(`isHotfix: ${isHotfix}`);
 
         var slackName = "Azure DevOps"
         var slackIcon = "https://i.imgur.com/YsiCtzd.png"  
@@ -119,6 +120,16 @@ async function run() {
                     {
                         prefix = ":boom: *[ROLLBACK]* Deploy";
                         suffix = ":boom:";
+                    }
+                    if (newVersion == oldVersion)
+                    {
+                        prefix = ":hankey: *[REPEATED]* Deploy";
+                        suffix = ":hankey:";
+                    }
+                    if (oldVersion == "<unknow>")
+                    {
+                        prefix = ":baby::skin-tone-3: *[FIRST TIME]* Deploy";
+                        suffix = ":baby::skin-tone-3:";
                     }
 
                     // prepare message
