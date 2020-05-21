@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tl = require("azure-pipelines-task-lib/task");
 const azStorage = require("azure-storage");
 const axios = require("axios");
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 function normalizeText(text) {
     return text.normalize().toLowerCase().replace(/[^a-zA-Z]+/g, '');
 }
@@ -33,6 +34,53 @@ function sendRequest(method, url, data, callback) {
     else
         xhr.send();
 }
+function addSheetsLine(sheetsId, email, privateKey, team, appName, environment, newVersion, oldVersion, isHotfix, isRollback, isRepeated, newUrl, oldUrl) {
+    return __awaiter(this, void 0, void 0, function* () {
+        console.log("adding sheets line...");
+        if (sheetsId == null)
+            return;
+        var sk = privateKey.split("\\n").join("\n");
+        var doc = new GoogleSpreadsheet(sheetsId);
+        yield doc.useServiceAccountAuth({
+            client_email: email,
+            private_key: sk
+        });
+        yield doc.loadInfo();
+        var sheet = doc.sheetsByIndex[0];
+        var row = yield sheet.addRow({
+            DeployDate: formatDate(Date.now()),
+            Team: team,
+            AppName: appName,
+            Environment: environment,
+            NewVersion: newVersion,
+            OldVersion: oldVersion,
+            IsHotfix: isHotfix,
+            IsRollback: isRollback,
+            IsRepeated: isRepeated,
+            NewUrl: newUrl,
+            OldUrl: oldUrl
+        });
+        console.log("finish sheets line!");
+    });
+}
+function _formatDatetime(date, format) {
+    const _padStart = (value) => value.toString().padStart(2, '0');
+    return format
+        .replace(/yyyy/g, _padStart(date.getUTCFullYear()))
+        .replace(/dd/g, _padStart(date.getUTCDate()))
+        .replace(/mm/g, _padStart(date.getUTCMonth() + 1))
+        .replace(/hh/g, _padStart(date.getUTCHours()))
+        .replace(/ii/g, _padStart(date.getUTCMinutes()))
+        .replace(/ss/g, _padStart(date.getUTCSeconds()))
+        .replace(/Z/g, "UTC");
+}
+function isValidDate(d) {
+    return !isNaN(d.getTime());
+}
+function formatDate(date) {
+    var datetime = new Date(date);
+    return isValidDate(datetime) ? _formatDatetime(datetime, 'yyyy-mm-dd hh:ii:ss Z') : '';
+}
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -40,6 +88,9 @@ function padLeft(text, padChar, size) {
     return (String(padChar).repeat(size) + text).substr((size * -1), size);
 }
 function isRollback(oldVersion, newVersion) {
+    if ((oldVersion.match(/./g) || []).length != (newVersion.match(/./g) || []).length) {
+        return false;
+    }
     if (/^\d+.\d+.\d+$/.test(oldVersion) && /^\d+.\d+.\d+$/.test(newVersion)) {
         var oldParts = oldVersion.split(".");
         var newParts = newVersion.split(".");
@@ -86,11 +137,18 @@ function run() {
             var appName = tl.getInput('app_name', true);
             var environment = tl.getInput('environment', true);
             var newUrl = tl.getInput('new_url', true);
+            var sheetsId = tl.getInput('sheets_id', false);
+            var sheetsEmail = tl.getInput('sheets_email', false);
+            var sheetsPrivateKey = tl.getInput('sheets_private_key', false);
+            var team = tl.getInput('team', false);
             var appNameNormalized = `${normalizeText(appName)}.${normalizeText(environment)}`;
             console.log(`environment: ${environment}`);
             console.log(`appName: ${appName}`);
             console.log(`appNameNormalized: ${appNameNormalized}`);
             console.log(`isHotfix: ${isHotfix}`);
+            if (team != null) {
+                team = team.split(' ')[0];
+            }
             var slackName = "Azure DevOps";
             var slackIcon = "https://i.imgur.com/YsiCtzd.png";
             var filePath = appNameNormalized + ".txt";
@@ -121,28 +179,31 @@ function run() {
                                     }
                                     var newVersionSem = removePrefix(newVersion);
                                     var oldVersionSem = removePrefix(oldVersion);
-                                    isHotfix = (isHotfix != null || isHotfix != undefined) ? isHotfix.toLowerCase().trim() : "false";
-                                    var isRollbackBool = isRollback(oldVersionSem, newVersionSem);
                                     var prefix = ":rocket: Deploy";
                                     var suffix = ":rocket:";
-                                    if (isHotfix == "true") {
+                                    isHotfix = (isHotfix != null || isHotfix != undefined) ? isHotfix.toLowerCase().trim() : "false";
+                                    var isHotfixBool = (isHotfix == "true");
+                                    if (isHotfixBool) {
                                         prefix = ":ambulance: *[HOTFIX]* Deploy";
                                         suffix = ":ambulance:";
                                     }
+                                    var isRollbackBool = isRollback(oldVersionSem, newVersionSem);
                                     if (isRollbackBool == true) {
                                         prefix = ":boom: *[ROLLBACK]* Deploy";
                                         suffix = ":boom:";
                                     }
-                                    if (newVersionSem == oldVersionSem) {
+                                    var isRepeated = (newVersionSem == oldVersionSem);
+                                    if (isRepeated) {
                                         prefix = ":hankey: *[REPEATED]* Deploy";
                                         suffix = ":hankey:";
                                     }
-                                    if (oldVersion == "<unknow>") {
+                                    var isFirstTime = (oldVersion == "<unknow>");
+                                    if (isFirstTime) {
                                         prefix = ":baby::skin-tone-3: *[FIRST TIME]* Deploy";
                                         suffix = ":baby::skin-tone-3:";
                                     }
                                     // prepare message
-                                    var message = `${prefix} Started for ${appName} in environment ${environment} ${suffix}`;
+                                    var message = `${prefix} Started for ${appName} in environment ${environment} | Team: ${team} ${suffix}`;
                                     var slackPayload = {
                                         text: message,
                                         icon_url: slackIcon,
@@ -162,6 +223,8 @@ function run() {
                                     tl.setVariable("NEW_URL", newUrl);
                                     tl.setVariable("OLD_VERSION", oldVersion);
                                     tl.setVariable("OLD_URL", oldUrl);
+                                    // add sheets report
+                                    yield addSheetsLine(sheetsId, sheetsEmail, sheetsPrivateKey, team, appName, environment, newVersion, oldVersion, isHotfixBool, isRollbackBool, isRepeated, newUrl, oldUrl);
                                     // send notification
                                     var resultSlack = yield axios.default.post(slackUrl, slackPayload);
                                     if (resultSlack.status < 200 || resultSlack.status >= 300) {

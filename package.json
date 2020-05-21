@@ -1,6 +1,6 @@
 {
   "name": "deploy-notification-vs-ext",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Send notification with new version and rollback version to Slack!",
   "main": "index.js",
   "scripts": {
@@ -31,7 +31,8 @@
   "dependencies": {
     "axios": "^0.19.2",
     "azure-pipelines-task-lib": "^2.8.0",
-    "azure-storage": "^2.10.3"
+    "azure-storage": "^2.10.3",
+    "google-spreadsheet": "^3.0.11"
   },
   "devDependencies": {
     "@types/node": "^12.0.8",
