@@ -15,6 +15,12 @@ const axios = require("axios");
 function normalizeText(text) {
     return text.normalize().toLowerCase().replace(/[^a-zA-Z]+/g, '');
 }
+function removePrefix(version) {
+    if (version != null) {
+        return version.replace(/[^0-9\.]+/g, '');
+    }
+    return version;
+}
 function sendRequest(method, url, data, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open(method, url, true);
@@ -52,6 +58,19 @@ function isRollback(oldVersion, newVersion) {
         if (oldMinor > newMinor)
             return true;
         return oldPatch > newPatch;
+    }
+    if (/^\d+.\d+$/.test(oldVersion) && /^\d+.\d+$/.test(newVersion)) {
+        var oldParts = oldVersion.split(".");
+        var newParts = newVersion.split(".");
+        var oldMajor = Number(oldParts[0]);
+        var oldMinor = Number(oldParts[1]);
+        var newMajor = Number(newParts[0]);
+        var newMinor = Number(newParts[1]);
+        if (newMajor > oldMajor)
+            return false;
+        if (oldMajor > newMajor)
+            return true;
+        return oldMinor > newMinor;
     }
     return false;
 }
@@ -100,8 +119,10 @@ function run() {
                                         tl.setResult(tl.TaskResult.Failed, "------------- Error in Azure Storage! (GetBlob)\n\nError: " + error.message);
                                         return;
                                     }
+                                    var newVersionSem = removePrefix(newVersion);
+                                    var oldVersionSem = removePrefix(oldVersion);
                                     isHotfix = (isHotfix != null || isHotfix != undefined) ? isHotfix.toLowerCase().trim() : "false";
-                                    var isRollbackBool = isRollback(oldVersion, newVersion);
+                                    var isRollbackBool = isRollback(oldVersionSem, newVersionSem);
                                     var prefix = ":rocket: Deploy";
                                     var suffix = ":rocket:";
                                     if (isHotfix == "true") {
@@ -112,7 +133,7 @@ function run() {
                                         prefix = ":boom: *[ROLLBACK]* Deploy";
                                         suffix = ":boom:";
                                     }
-                                    if (newVersion == oldVersion) {
+                                    if (newVersionSem == oldVersionSem) {
                                         prefix = ":hankey: *[REPEATED]* Deploy";
                                         suffix = ":hankey:";
                                     }

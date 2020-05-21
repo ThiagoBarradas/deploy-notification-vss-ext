@@ -1,6 +1,6 @@
 {
   "name": "deploy-notification-vs-ext",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Send notification with new version and rollback version to Slack!",
   "main": "index.js",
   "scripts": {

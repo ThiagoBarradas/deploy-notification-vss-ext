@@ -8,6 +8,16 @@ function normalizeText(text)
     return text.normalize().toLowerCase().replace(/[^a-zA-Z]+/g, '');
 }
 
+function removePrefix(version)
+{
+    if (version != null)
+    {
+        return version.replace(/[^0-9\.]+/g, '');
+    }
+
+    return version;
+}
+
 function sendRequest(method, url, data, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open(method, url, true);
@@ -29,7 +39,7 @@ function padLeft(text:string, padChar:string, size:number): string {
 
 function isRollback(oldVersion, newVersion) : boolean
 {
-    if (/^\d+.\d+.\d+$/.test(oldVersion) && /^\d+.\d+.\d+$/.test(newVersion))
+    if (/^\d+.\d+.\d+$/.test(oldVersion) && /^\d+.\d+.\d+$/.test(newVersion)) 
     {
         var oldParts = oldVersion.split(".");
         var newParts = newVersion.split(".");
@@ -49,6 +59,24 @@ function isRollback(oldVersion, newVersion) : boolean
         if (oldMinor > newMinor) return true;
 
         return oldPatch > newPatch;
+    }
+
+    
+    if (/^\d+.\d+$/.test(oldVersion) && /^\d+.\d+$/.test(newVersion)) 
+    {
+        var oldParts = oldVersion.split(".");
+        var newParts = newVersion.split(".");
+
+        var oldMajor = Number(oldParts[0]);
+        var oldMinor = Number(oldParts[1]);
+
+        var newMajor = Number(newParts[0]);
+        var newMinor = Number(newParts[1]);
+
+        if (newMajor > oldMajor) return false;
+        if (oldMajor > newMajor) return true;
+
+        return oldMinor > newMinor;
     }
 
     return false;
@@ -105,8 +133,11 @@ async function run() {
                         return;
                     }
 
+                    var newVersionSem = removePrefix(newVersion);
+                    var oldVersionSem = removePrefix(oldVersion);
+
                     isHotfix = (isHotfix != null || isHotfix != undefined) ? isHotfix.toLowerCase().trim() : "false" ;
-                    var isRollbackBool = isRollback(oldVersion, newVersion);
+                    var isRollbackBool = isRollback(oldVersionSem, newVersionSem);
 
                     var prefix = ":rocket: Deploy";
                     var suffix = ":rocket:";
@@ -121,7 +152,7 @@ async function run() {
                         prefix = ":boom: *[ROLLBACK]* Deploy";
                         suffix = ":boom:";
                     }
-                    if (newVersion == oldVersion)
+                    if (newVersionSem == oldVersionSem)
                     {
                         prefix = ":hankey: *[REPEATED]* Deploy";
                         suffix = ":hankey:";
